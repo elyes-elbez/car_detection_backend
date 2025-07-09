@@ -13,13 +13,16 @@ from cloudinary.api import resources
 from fastapi import FastAPI
 import os
 from cloudinary import config as cloudinary_config
+import base64
 
+# Decode the base64 credential from the environment variable
+firebase_base64 = os.getenv("FIREBASE_CREDENTIALS_JSON")
+firebase_json = base64.b64decode(firebase_base64)
 
-firebase_cred_json = os.environ.get("FIREBASE_CREDENTIALS_JSON")
-cred = credentials.Certificate(json.loads(firebase_cred_json))
+# Load credentials from the decoded content
+cred = credentials.Certificate(BytesIO(firebase_json))
 firebase_admin.initialize_app(cred, {
-    'projectId': os.environ.get("bacs-view"),
-    # other options if needed
+    'projectId': 'bacs-view'
 })
 
 # Get Firestore client
