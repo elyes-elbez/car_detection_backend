@@ -1,3 +1,6 @@
+
+import os
+import json
 import asyncio
 import requests
 from io import BytesIO
@@ -11,9 +14,13 @@ from fastapi import FastAPI
 import os
 from cloudinary import config as cloudinary_config
 
-# Initialize Firebase Admin SDK (no databaseURL for Firestore)
-cred = credentials.Certificate("bacs-view-firebase-adminsdk.json")
-firebase_admin.initialize_app(cred)
+
+firebase_cred_json = os.environ.get("FIREBASE_CREDENTIALS_JSON")
+cred = credentials.Certificate(json.loads(firebase_cred_json))
+firebase_admin.initialize_app(cred, {
+    'projectId': os.environ.get("bacs-view"),
+    # other options if needed
+})
 
 # Get Firestore client
 db = firestore.client()
