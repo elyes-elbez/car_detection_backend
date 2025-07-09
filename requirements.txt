@@ -1,7 +1,7 @@
 fastapi==0.103.1
 uvicorn==0.23.2
 
-torch==1.13.1      # or 1.12.1 or latest that works with your trained model
+torch==2.0.1      # or 1.12.1 or latest that works with your trained model
 pillow==9.5.0
 requests==2.31.0
 firebase-admin==6.2.0
