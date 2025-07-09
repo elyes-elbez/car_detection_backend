@@ -20,10 +20,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'yolov5'))
 # Include YOLOv5 path from the backend subfolder
 sys.path.insert(0, os.path.abspath("yolov5"))
 
-from models.common import DetectMultiBackend
-from utils.general import non_max_suppression, scale_coords
-from utils.dataloaders import letterbox
-from utils.torch_utils import select_device
+from yolov5.models.common import DetectMultiBackend
+from yolov5.utils.general import non_max_suppression, scale_coords
+from yolov5.utils.dataloaders import letterbox
+from yolov5.utils.torch_utils import select_device
 
 # --- Firebase initialization ---
 firebase_base64 = os.getenv("FIREBASE_CREDENTIALS_JSON")
