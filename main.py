@@ -15,16 +15,21 @@ import os
 from cloudinary import config as cloudinary_config
 import base64
 
-# Decode the base64 credential from the environment variable
+# Get the base64 encoded JSON string from environment variable
 firebase_base64 = os.getenv("FIREBASE_CREDENTIALS_JSON")
-firebase_json = base64.b64decode(firebase_base64)
 
-# Load credentials from the decoded content
-cred = credentials.Certificate(BytesIO(firebase_json))
+# Decode base64 to JSON string
+firebase_json_str = base64.b64decode(firebase_base64).decode('utf-8')
+
+# Parse JSON string to Python dict
+firebase_dict = json.loads(firebase_json_str)
+
+# Pass dict to Certificate()
+cred = credentials.Certificate(firebase_dict)
+
 firebase_admin.initialize_app(cred, {
     'projectId': 'bacs-view'
 })
-
 # Get Firestore client
 db = firestore.client()
 
@@ -39,7 +44,7 @@ cloudinary_config(
 app = FastAPI()
 
 # Load your YOLOv5 custom model via Torch Hub (will download automatically on first run)
-model = torch.hub.load('ultralytics/yolov5', 'custom', path='best.pt', force_reload=False)
+model = torch.hub.load('ultralytics/yolov5', 'custom', path='best(1).pt', force_reload=False)
 
 async def fetch_latest_image_url():
     res = resources(type='upload', max_results=1, direction='desc')
