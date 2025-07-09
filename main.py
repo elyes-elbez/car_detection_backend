@@ -18,7 +18,7 @@ from fastapi import FastAPI
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'yolov5'))
 # Include YOLOv5 path from the backend subfolder
-sys.path.insert(0, os.path.abspath("backend/yolov5"))
+sys.path.insert(0, os.path.abspath("yolov5"))
 
 from models.common import DetectMultiBackend
 from utils.general import non_max_suppression, scale_coords
@@ -47,7 +47,7 @@ app = FastAPI()
 
 # --- Load YOLOv5 model ---
 device = select_device("cpu")
-model_path = "backend/best(1).pt"  # Adjust path if your model is also in /backend
+model_path = "best(1).pt"  # Adjust path if your model is also in /backend
 model = DetectMultiBackend(model_path, device=device)
 model.eval()
 stride, names, pt = model.stride, model.names, model.pt
