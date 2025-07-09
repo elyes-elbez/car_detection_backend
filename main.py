@@ -16,6 +16,7 @@ from cloudinary import config as cloudinary_config
 from cloudinary.api import resources
 from fastapi import FastAPI
 
+sys.path.append(os.path.join(os.path.dirname(__file__), 'yolov5'))
 # Include YOLOv5 path from the backend subfolder
 sys.path.insert(0, os.path.abspath("backend/yolov5"))
 
