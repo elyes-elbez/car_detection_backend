@@ -1,0 +1,4 @@
+bacs-view-firebase-adminsdk.json
+__pycache__/
+.venv/
+.env

@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+torch
+pillow
+requests
+firebase-admin
+cloudinary
