@@ -1,8 +1,16 @@
-fastapi
-uvicorn
-torch
-pillow
-requests
-firebase-admin
-cloudinary
-ultralytics
+fastapi==0.103.1
+uvicorn==0.23.2
+
+torch==1.13.1      # or 1.12.1 or latest that works with your trained model
+pillow==9.5.0
+requests==2.31.0
+firebase-admin==6.2.0
+cloudinary==1.36.0
+ultralytics==8.0.20  # use only if you're using YOLOv8
+
+matplotlib==3.7.1
+numpy==1.23.5
+opencv-python-headless==4.7.0.72
+PyYAML==6.0
+scipy==1.9.3
+tqdm==4.65.0
