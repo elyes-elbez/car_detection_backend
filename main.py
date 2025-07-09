@@ -1,39 +1,29 @@
-
 import os
 import json
 import asyncio
 import requests
 from io import BytesIO
 from PIL import Image
-import torch
+from ultralytics import YOLO
 import firebase_admin
 from firebase_admin import credentials, firestore
 from cloudinary import config as cloudinary_config
 from cloudinary.api import resources
 from fastapi import FastAPI
-import os
-from cloudinary import config as cloudinary_config
 import base64
+from datetime import datetime
 
-# Get the base64 encoded JSON string from environment variable
+# --- Firebase initialization with base64 env var ---
 firebase_base64 = os.getenv("FIREBASE_CREDENTIALS_JSON")
-
-# Decode base64 to JSON string
 firebase_json_str = base64.b64decode(firebase_base64).decode('utf-8')
-
-# Parse JSON string to Python dict
 firebase_dict = json.loads(firebase_json_str)
-
-# Pass dict to Certificate()
 cred = credentials.Certificate(firebase_dict)
-
 firebase_admin.initialize_app(cred, {
     'projectId': 'bacs-view'
 })
-# Get Firestore client
 db = firestore.client()
 
-# Configure Cloudinary
+# --- Cloudinary config ---
 cloudinary_config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
@@ -43,8 +33,8 @@ cloudinary_config(
 
 app = FastAPI()
 
-# Load your YOLOv5 custom model via Torch Hub (will download automatically on first run)
-model = torch.hub.load('ultralytics/yolov5', 'custom', path='best(1).pt', force_reload=False)
+# --- Load your trained YOLO model ---
+model = YOLO('best(1).pt')  # make sure best(1).pt is in your repo root or specify path
 
 async def fetch_latest_image_url():
     res = resources(type='upload', max_results=1, direction='desc')
@@ -58,16 +48,17 @@ async def detect_and_save():
         if image_url:
             response = requests.get(image_url)
             img = Image.open(BytesIO(response.content))
-            results = model(img)
 
-            # Count cars (class 0 usually = car)
-            car_count = (results.pred[0][:, -1] == 0).sum().item()
+            results = model(img)  # Run inference
 
-            from datetime import datetime
+            detections = results[0].boxes  # Boxes object
+            # Count cars (class 0 is car)
+            car_count = sum(box.cls.item() == 0 for box in detections)
+
             timestamp = datetime.utcnow().isoformat()
 
             # Save detection to Firestore collection 'detections'
-            doc_ref = db.collection('detections').document()  # new auto-ID doc
+            doc_ref = db.collection('detections').document()
             doc_ref.set({
                 'timestamp': timestamp,
                 'image_url': image_url,

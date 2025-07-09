@@ -5,3 +5,4 @@ pillow
 requests
 firebase-admin
 cloudinary
+ultralytics
