@@ -1,6 +1,5 @@
 import os
 import json
-import asyncio
 import requests
 import base64
 import sys
@@ -14,9 +13,9 @@ from firebase_admin import credentials, firestore
 
 from cloudinary import config as cloudinary_config
 from cloudinary.api import resources
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
-# --- Set base directory and YOLOv5 path ---
+# --- Setup YOLOv5 path ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 YOLOV5_DIR = os.path.join(BASE_DIR, 'yolov5')
 
@@ -50,70 +49,74 @@ cloudinary_config(
 # --- FastAPI app ---
 app = FastAPI()
 
-# --- Load YOLOv5 model (weights-only safe loading) ---
+# --- Load YOLOv5s model ---
 device = select_device("cpu")
+cfg_path = check_yaml("yolov5/models/yolov5s.yaml")
+model = Model(cfg_path, ch=3, nc=1).to(device)  # nc=1 for single class
 
-# Adjust to match your model config and class count
-cfg_path = check_yaml("yolov5/models/yolov5s.yaml")  # Change if you used another config
-model = Model(cfg_path, ch=3, nc=1).to(device)  # nc=1 for car detection (adjust if needed)
-
-# Load safe weights-only model
 weights_path = "best_weights_only.pt"
 state_dict = torch.load(weights_path, map_location=device)
 model.load_state_dict(state_dict)
 model.eval()
 
-# Define model metadata manually
-stride = 32  # typical YOLO stride
-names = ['car']  # adjust to your class names
+stride = 32
+names = ['car']
 pt = True
-img_size = 640
+img_size = 640  # reduce to 320 if memory is tight
 
-# --- Helper function: fetch latest Cloudinary image ---
+# --- Helper to fetch latest image URL from Cloudinary ---
 async def fetch_latest_image_url():
     res = resources(type='upload', max_results=1, direction='desc')
     if res['resources']:
         return res['resources'][0]['secure_url']
     return None
 
-# --- Detection loop ---
-async def detect_and_save():
-    while True:
-        image_url = await fetch_latest_image_url()
-        if image_url:
-            response = requests.get(image_url)
-            img = Image.open(BytesIO(response.content)).convert("RGB")
+# --- Detection endpoint ---
+@app.get("/detect")
+async def detect_latest_image():
+    image_url = await fetch_latest_image_url()
+    if not image_url:
+        raise HTTPException(status_code=404, detail="No images found in Cloudinary")
 
-            img0 = img.copy()
-            img = letterbox(img0, new_shape=img_size, stride=stride, auto=pt)[0]
-            img = img.transpose((2, 0, 1))
-            img = torch.from_numpy(img).to(device)
-            img = img.float() / 255.0
-            if img.ndimension() == 3:
-                img = img.unsqueeze(0)
+    try:
+        response = requests.get(image_url)
+        img = Image.open(BytesIO(response.content)).convert("RGB")
 
+        img0 = img.copy()
+        img = letterbox(img0, new_shape=img_size, stride=stride, auto=pt)[0]
+        img = img.transpose((2, 0, 1))
+        img = torch.from_numpy(img).to(device).float() / 255.0
+        if img.ndimension() == 3:
+            img = img.unsqueeze(0)
+
+        with torch.no_grad():
             pred = model(img, augment=False)
-            pred = non_max_suppression(pred, conf_thres=0.25, iou_thres=0.45, classes=None)
+            pred = non_max_suppression(pred, conf_thres=0.25, iou_thres=0.45)
 
-            car_count = 0
-            for det in pred:
-                if len(det):
-                    det[:, :4] = scale_coords(img.shape[2:], det[:, :4], img0.size).round()
-                    car_count += (det[:, -1] == 0).sum().item()
+        car_count = 0
+        for det in pred:
+            if len(det):
+                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], img0.size).round()
+                car_count += (det[:, -1] == 0).sum().item()
 
-            timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.utcnow().isoformat()
 
-            db.collection("detections").document().set({
-                "timestamp": timestamp,
-                "image_url": image_url,
-                "car_count": car_count
-            })
+        # Save detection result to Firebase
+        db.collection("detections").document().set({
+            "timestamp": timestamp,
+            "image_url": image_url,
+            "car_count": car_count
+        })
 
-            print(f"[{timestamp}] Detected {car_count} cars.")
+        # Free memory
+        del img, img0, pred, det
+        torch.cuda.empty_cache()
 
-        await asyncio.sleep(600)  # wait 10 minutes
-
-# --- FastAPI startup ---
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(detect_and_save())
+        return {
+            "status": "success",
+            "timestamp": timestamp,
+            "car_count": car_count,
+            "image_url": image_url
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
