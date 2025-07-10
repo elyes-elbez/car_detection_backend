@@ -62,7 +62,7 @@ model.eval()
 stride = 32
 names = ['car']
 pt = True
-img_size = 640  # reduce to 320 if memory is tight
+img_size = 320  # reduce to 320 if memory is tight
 
 # --- Helper to fetch latest image URL from Cloudinary ---
 async def fetch_latest_image_url():
