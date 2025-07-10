@@ -16,16 +16,16 @@ from cloudinary import config as cloudinary_config
 from cloudinary.api import resources
 from fastapi import FastAPI
 
-# Set base directory and YOLOv5 path
+# --- Set base directory and YOLOv5 path ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 YOLOV5_DIR = os.path.join(BASE_DIR, 'yolov5')
 
-# Add yolov5 path to sys.path
 if YOLOV5_DIR not in sys.path:
     sys.path.insert(0, YOLOV5_DIR)
 
-from models.common import DetectMultiBackend
-from utils.general import non_max_suppression, scale_coords
+# --- Import YOLOv5 dependencies ---
+from models.yolo import Model
+from utils.general import check_yaml, non_max_suppression, scale_coords
 from utils.dataloaders import letterbox
 from utils.torch_utils import select_device
 
@@ -47,22 +47,36 @@ cloudinary_config(
     secure=True
 )
 
+# --- FastAPI app ---
 app = FastAPI()
 
-# --- Load YOLOv5 model with weights_only=True ---
+# --- Load YOLOv5 model (weights-only safe loading) ---
 device = select_device("cpu")
-model_path = "best_weights_only.pt"  # <-- This should be re-saved version
-model = DetectMultiBackend(model_path, device=device, data=None, weights_only=True)
+
+# Adjust to match your model config and class count
+cfg_path = check_yaml("models/yolov5s.yaml")  # Change if you used another config
+model = Model(cfg_path, ch=3, nc=1).to(device)  # nc=1 for car detection (adjust if needed)
+
+# Load safe weights-only model
+weights_path = "best_weights_only.pt"
+state_dict = torch.load(weights_path, map_location=device)
+model.load_state_dict(state_dict)
 model.eval()
-stride, names, pt = model.stride, model.names, model.pt
+
+# Define model metadata manually
+stride = 32  # typical YOLO stride
+names = ['car']  # adjust to your class names
+pt = True
 img_size = 640
 
+# --- Helper function: fetch latest Cloudinary image ---
 async def fetch_latest_image_url():
     res = resources(type='upload', max_results=1, direction='desc')
     if res['resources']:
         return res['resources'][0]['secure_url']
     return None
 
+# --- Detection loop ---
 async def detect_and_save():
     while True:
         image_url = await fetch_latest_image_url()
@@ -97,8 +111,9 @@ async def detect_and_save():
 
             print(f"[{timestamp}] Detected {car_count} cars.")
 
-        await asyncio.sleep(600)
+        await asyncio.sleep(600)  # wait 10 minutes
 
+# --- FastAPI startup ---
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(detect_and_save())
