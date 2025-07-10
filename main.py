@@ -57,6 +57,7 @@ app = FastAPI()
 # --- Load YOLOv5 model ---
 device = select_device("cpu")
 model_path = "best(1).pt"  # Adjust path if your model is also in /backend
+torch.serialization.add_safe_globals([DetectionModel])
 with safe_globals([DetectionModel]):
     model = DetectMultiBackend(model_path, device=device)
 model.eval()
