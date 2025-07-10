@@ -16,10 +16,13 @@ from cloudinary import config as cloudinary_config
 from cloudinary.api import resources
 from fastapi import FastAPI
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'yolov5'))
-# Include YOLOv5 path from the backend subfolder
-sys.path.insert(0, os.path.abspath("yolov5"))
+# Get absolute path to the current directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+YOLOV5_DIR = os.path.join(BASE_DIR, 'yolov5')
 
+# Add yolov5 path to sys.path
+if YOLOV5_DIR not in sys.path:
+    sys.path.insert(0, YOLOV5_DIR)
 from yolov5.models.common import DetectMultiBackend
 from yolov5.utils.general import non_max_suppression, scale_coords
 from yolov5.utils.dataloaders import letterbox
