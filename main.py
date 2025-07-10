@@ -7,6 +7,9 @@ import sys
 from io import BytesIO
 from PIL import Image
 from datetime import datetime
+from yolov5.models.yolo import DetectionModel
+from torch.serialization import safe_globals
+
 
 import torch
 import firebase_admin
@@ -54,7 +57,8 @@ app = FastAPI()
 # --- Load YOLOv5 model ---
 device = select_device("cpu")
 model_path = "best(1).pt"  # Adjust path if your model is also in /backend
-model = DetectMultiBackend(model_path, device=device)
+with safe_globals([DetectionModel]):
+    model = DetectMultiBackend(model_path, device=device)
 model.eval()
 stride, names, pt = model.stride, model.names, model.pt
 img_size = 640
