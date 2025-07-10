@@ -16,6 +16,8 @@ from cloudinary import config as cloudinary_config
 from cloudinary.api import resources
 from fastapi import FastAPI
 
+
+
 # Get absolute path to the current directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 YOLOV5_DIR = os.path.join(BASE_DIR, 'yolov5')
@@ -23,10 +25,11 @@ YOLOV5_DIR = os.path.join(BASE_DIR, 'yolov5')
 # Add yolov5 path to sys.path
 if YOLOV5_DIR not in sys.path:
     sys.path.insert(0, YOLOV5_DIR)
-from yolov5.models.common import DetectMultiBackend
-from yolov5.utils.general import non_max_suppression, scale_coords
-from yolov5.utils.dataloaders import letterbox
-from yolov5.utils.torch_utils import select_device
+    
+from models.common import DetectMultiBackend
+from utils.general import non_max_suppression, scale_coords
+from utils.dataloaders import letterbox
+from utils.torch_utils import select_device
 
 # --- Firebase initialization ---
 firebase_base64 = os.getenv("FIREBASE_CREDENTIALS_JSON")
