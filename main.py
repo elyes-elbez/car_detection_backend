@@ -7,9 +7,6 @@ import sys
 from io import BytesIO
 from PIL import Image
 from datetime import datetime
-from yolov5.models.yolo import DetectionModel
-from torch.serialization import safe_globals
-
 
 import torch
 import firebase_admin
@@ -19,16 +16,14 @@ from cloudinary import config as cloudinary_config
 from cloudinary.api import resources
 from fastapi import FastAPI
 
-
-
-# Get absolute path to the current directory
+# Set base directory and YOLOv5 path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 YOLOV5_DIR = os.path.join(BASE_DIR, 'yolov5')
 
 # Add yolov5 path to sys.path
 if YOLOV5_DIR not in sys.path:
     sys.path.insert(0, YOLOV5_DIR)
-    
+
 from models.common import DetectMultiBackend
 from utils.general import non_max_suppression, scale_coords
 from utils.dataloaders import letterbox
@@ -54,12 +49,10 @@ cloudinary_config(
 
 app = FastAPI()
 
-# --- Load YOLOv5 model ---
+# --- Load YOLOv5 model with weights_only=True ---
 device = select_device("cpu")
-model_path = "best(1).pt"  # Adjust path if your model is also in /backend
-torch.serialization.add_safe_globals([DetectionModel])
-with safe_globals([DetectionModel]):
-    model = DetectMultiBackend(model_path, device=device)
+model_path = "best_weights_only.pt"  # <-- This should be re-saved version
+model = DetectMultiBackend(model_path, device=device, data=None, weights_only=True)
 model.eval()
 stride, names, pt = model.stride, model.names, model.pt
 img_size = 640
