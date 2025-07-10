@@ -54,7 +54,7 @@ app = FastAPI()
 device = select_device("cpu")
 
 # Adjust to match your model config and class count
-cfg_path = check_yaml("models/yolov5s.yaml")  # Change if you used another config
+cfg_path = check_yaml("yolov5/models/yolov5s.yaml")  # Change if you used another config
 model = Model(cfg_path, ch=3, nc=1).to(device)  # nc=1 for car detection (adjust if needed)
 
 # Load safe weights-only model
